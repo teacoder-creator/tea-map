@@ -8,12 +8,13 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root {
-            --primary: #2C3E31; /* 御茶濃綠 */
+            --primary: #314234; /* 御茶濃綠 */
             --primary-light: #F4F6F4; /* 輕盈茶白 */
-            --accent: #D4964B; /* 琥珀焙茶金 */
+            --accent: #b88a4c; /* 琥珀焙茶金 */
             --text-main: #242B26; /* 炭綠黑 */
             --text-muted: #8A988E; /* 煙草灰綠 */
-            --bg-site: #F8F9F8;
+            --bg-site: #f6f3ed;
+            --paper:#fbfaf7;
             --shadow-sm: 0 6px 16px rgba(44,62,49,0.02);
             --shadow-md: 0 16px 36px rgba(44,62,49,0.06);
             --transition: cubic-bezier(0.16, 1, 0.3, 1);
@@ -23,21 +24,27 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
-        body {
-            background-color: var(--bg-site);
-            color: var(--text-main);
-            display: flex;
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;700&family=Noto+Sans+TC:wght@300;400;500&display=swap');
+
+        body{
+            font-family:"Noto Sans TC",sans-serif;
+            display: flex; /* 恢復左右並排關鍵設定 */
             height: 100vh;
+            width: 100vw;
             overflow: hidden;
-            position: relative;
+            background: var(--bg-site);
+        }
+
+        .header h1,
+        .article-title{
+            font-family:"Noto Serif TC",serif;
         }
 
         body::before {
             content: ''; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background-image: url("https://www.transparenttextures.com/patterns/handmade-paper.png");
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(200,200,200,0.5) 100%), url('handmade-paper.png');
             opacity: 0.3; pointer-events: none; z-index: 9999;
         }
 
@@ -98,14 +105,15 @@
         ::-webkit-scrollbar-thumb { background: rgba(44, 62, 49, 0.15); border-radius: 10px; }
 
         .sidebar {
-            width: 420px; height: 100%; background: #ffffff;
+            width: 420px; height: 100%; background:linear-gradient(180deg,#fcfbf7,#f7f2ea);
             box-shadow: 5px 0 30px rgba(0,0,0,0.01);
             display: flex; flex-direction: column; z-index: 10;
-            border-right: 1px solid #ECEEEB; flex-shrink: 0;
+            border-right:1px solid rgba(90,80,60,.08);
+            flex-shrink: 0;
         }
 
         .header { padding: 35px 35px 20px 35px; }
-        .header h1 { font-size: 24px; font-weight: 700; color: var(--primary); letter-spacing: 2px; margin-bottom: 6px; }
+        .header h1 { font-size: 24px; font-weight:500;letter-spacing:2px; margin-bottom: 6px; }
         .header p { font-size: 13px; color: var(--text-muted); letter-spacing: 0.5px; }
 
         .controls-wrapper { padding: 0 35px 20px 35px; border-bottom: 1px solid rgba(44,62,49,0.05); }
@@ -165,6 +173,12 @@
         .article-cover {
             width: 100%; height: 220px; background-size: cover; background-position: center; background-color: #ECEEEB;
             border-bottom: 1px solid #ECEEEB;
+            position: relative;
+        }
+        .article-cover::after {
+            content: ""; position: absolute; inset: 0;
+            background: linear-gradient(transparent, rgba(20, 20, 20, .45));
+            pointer-events: none;
         }
         
         .article-body { padding: 30px 30px 60px 30px; }
@@ -245,7 +259,8 @@
     <div class="sidebar">
         <div class="header">
             <h1>茶文化走訪誌</h1>
-            <p>苗栗．新竹．桃園．台北 地圖探訪</p>
+            <p>循著山嵐與茶香，
+走訪北臺灣茶文化風景。</p>
         </div>
         
         <div class="controls-wrapper">
@@ -388,7 +403,6 @@
             });
             renderInterface();
 
-            // 如果點擊了「全部」，自動關閉右側文章面板並將地圖平移/縮放回一開始的整張全覽視角
             if (region === '全部') {
                 closeArticle();
                 map.setView([24.85, 121.25], 10, { animate: true, duration: 0.8 });
