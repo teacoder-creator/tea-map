@@ -9,11 +9,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;600&family=Noto+Sans+TC:wght@300;400;500&display=swap?v=2" rel="stylesheet">
     <style>
         :root {
-            --primary: #314234; /* 御茶濃綠 */
-            --primary-light: #F4F6F4; /* 輕盈茶白 */
-            --accent: #b88a4c; /* 琥珀焙茶金 */
-            --text-main: #242B26; /* 炭綠黑 */
-            --text-muted: #8A988E; /* 煙草灰綠 */
+            --primary: #314234;
+            --primary-light: #F4F6F4;
+            --accent: #b88a4c;
+            --text-main: #242B26;
+            --text-muted: #8A988E;
             --bg-site: #f6f3ed;
             --paper:#fbfaf7;
             --shadow-sm: 0 6px 16px rgba(44,62,49,0.02);
@@ -30,13 +30,13 @@
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;600&family=Noto+Sans+TC:wght@300;400;500&display=swap');
 
         body{
-            font-family: "Noto Serif TC", "Noto Sans TC", serif; /* 讓整體多帶一點宋體的典雅氣息 */
+            font-family: "Noto Serif TC", "Noto Sans TC", serif;
             display: flex; 
             height: 100vh;
             width: 100vw;
             overflow: hidden;
             background: var(--bg-site);
-            letter-spacing: 0.8px; /* 全局增加微小的優雅字距 */
+            letter-spacing: 0.8px;
         }
 
         .header h1,
@@ -46,7 +46,6 @@
             letter-spacing: 2px;
         }
 
-        /* 讓卡片標題更精緻 */
         .spot-card h3 { 
             font-family: "Noto Serif TC", serif;
             font-size: 16px; 
@@ -55,7 +54,6 @@
             font-weight: 500;
         }
 
-        /* 讓卡片內文與摘要更柔和、好讀 */
         .spot-card p { 
             font-family: "Noto Sans TC", sans-serif;
             font-size: 12.5px; 
@@ -69,11 +67,10 @@
             overflow: hidden; 
         }
 
-        /* 詳情文章內文：增加行高與字距，營造閱讀散文的美感 */
         .article-text { 
-            font-family: "Noto Serif TC", serif; /* 內文改用宋體，提升文學質感 */
+            font-family: "Noto Serif TC", serif;
             font-size: 14.5px; 
-            line-height: 2.0; /* 寬鬆的行高帶來呼吸感 */
+            line-height: 2.0;
             color: #3D4640; 
             white-space: pre-line; 
             text-align: justify; 
@@ -275,53 +272,152 @@
             100% { transform: scale(1.2); opacity: 0; }
         }
 
-    @media (max-width: 768px) {
-    body { flex-direction: column-reverse; }
-    
-    /* 讓面板預設高度適中，但允許向上滑動展開 */
-    .sidebar { 
-        width: 100%; 
-        height: 42vh; /* 預設佔手機畫面約 42% */
-        max-height: 85vh; /* 向上滑動時最多可以展開到 85% 螢幕高度 */
-        transition: height 0.4s var(--transition);
-        box-shadow: 0 -10px 30px rgba(0,0,0,0.08); 
-        border-top: 1px solid #ECEEEB; 
-        border-radius: 20px 20px 0 0; /* 加上漂亮的圓角，更有App質感 */
-    }
-    
-    .header { padding: 16px 20px 10px 20px; }
-    .header h1 { font-size: 18px; font-family: "Noto Serif TC", serif; }
-    .header p { display: none; }
-    .controls-wrapper { padding: 0 20px 10px 20px; }
-    
-    /* 讓下方景點列表可以順暢上下滑動，且支援展開 */
-    .spot-list-wrapper { flex: 1; overflow: hidden; }
-    .spot-list { 
-        padding: 10px 20px 40px 20px; 
-        display: block; 
-        overflow-x: hidden; 
-        overflow-y: auto; 
-        height: 100%; 
-    }
-    
-    .spot-card {
-        margin-bottom: 12px;
-    }
-    
-    /* 確保手機版內文與標題套用優雅字體 */
-    .spot-card h3 {
-        font-family: "Noto Serif TC", serif;
-    }
-    .spot-card p, .article-text {
-        font-family: "Noto Serif TC", "Noto Sans TC", serif;
-        line-height: 1.8;
-    }
+        /* ============================================================
+                   手機板樣式 - 收合功能 (僅手機顯示)
+                   ============================================================ */
+        @media (max-width: 768px) {
+            body { flex-direction: column-reverse; }
+            
+            .sidebar { 
+                width: 100%; 
+                height: 42vh;
+                max-height: 92vh;
+                transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                box-shadow: 0 -10px 30px rgba(0,0,0,0.08); 
+                border-top: 1px solid #ECEEEB; 
+                border-radius: 20px 20px 0 0;
+                touch-action: pan-y;
+                position: relative;
+                overflow: visible;
+            }
 
-    .article-panel { position: fixed; width: 100%; height: 100%; top: 0; left: 0; transform: translateY(100%); z-index: 1000; }
-    .article-panel.active { transform: translateY(0); }
-    .article-cover { height: 160px; }
-    .article-body { padding: 20px 20px 40px 20px; }
-}
+            /* ---- 拖曳控制條 (純視覺，無文字) ---- */
+            .sidebar-drag-handle {
+                position: absolute;
+                top: -16px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 60px;
+                height: 24px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: grab;
+                touch-action: none;
+                z-index: 20;
+                background: rgba(255,255,255,0.85);
+                backdrop-filter: blur(8px);
+                border-radius: 30px 30px 12px 12px;
+                box-shadow: 0 -2px 12px rgba(0,0,0,0.04);
+                border: 1px solid rgba(255,255,255,0.6);
+                border-top: none;
+                padding: 0;
+            }
+            .sidebar-drag-handle:active {
+                cursor: grabbing;
+            }
+            .sidebar-drag-handle .drag-bar {
+                width: 32px;
+                height: 3px;
+                background: #C5CBC5;
+                border-radius: 4px;
+                transition: background 0.3s;
+            }
+            .sidebar.expanded .sidebar-drag-handle .drag-bar {
+                background: var(--accent);
+            }
+
+            /* ---- 展開/收合按鈕 (僅手機版顯示) ---- */
+            .header {
+                padding: 16px 20px 10px 20px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                flex-wrap: wrap;
+            }
+            .header h1 { 
+                font-size: 18px; 
+                font-family: "Noto Serif TC", serif;
+                margin-bottom: 0;
+            }
+            .header p { display: none; }
+            
+            .header-expand-btn {
+                background: none;
+                border: 1px solid #E2E6E3;
+                border-radius: 30px;
+                padding: 4px 14px;
+                font-size: 12px;
+                color: var(--text-muted);
+                cursor: pointer;
+                transition: all 0.3s;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                background: rgba(255,255,255,0.6);
+                font-family: "Noto Sans TC", sans-serif;
+                touch-action: manipulation;
+            }
+            .header-expand-btn:active {
+                transform: scale(0.94);
+            }
+            .header-expand-btn .arrow-icon {
+                display: inline-block;
+                transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            .sidebar.expanded .header-expand-btn .arrow-icon {
+                transform: rotate(180deg);
+            }
+
+            .controls-wrapper { padding: 0 20px 10px 20px; }
+            
+            .spot-list-wrapper { flex: 1; overflow: hidden; }
+            .spot-list { 
+                padding: 10px 20px 40px 20px; 
+                display: block; 
+                overflow-x: hidden; 
+                overflow-y: auto; 
+                height: 100%; 
+                touch-action: pan-y;
+            }
+            
+            .spot-card {
+                margin-bottom: 12px;
+            }
+            
+            .spot-card h3 {
+                font-family: "Noto Serif TC", serif;
+            }
+            .spot-card p, .article-text {
+                font-family: "Noto Serif TC", "Noto Sans TC", serif;
+                line-height: 1.8;
+            }
+
+            .article-panel { 
+                position: fixed; 
+                width: 100%; 
+                height: 100%; 
+                top: 0; 
+                left: 0; 
+                transform: translateY(100%); 
+                z-index: 1000; 
+            }
+            .article-panel.active { transform: translateY(0); }
+            .article-cover { height: 160px; }
+            .article-body { padding: 20px 20px 40px 20px; }
+        }
+
+        /* ============================================================
+                   電腦版：隱藏手機專用元素
+                   ============================================================ */
+        @media (min-width: 769px) {
+            .sidebar-drag-handle {
+                display: none !important;
+            }
+            .header-expand-btn {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -329,11 +425,20 @@
     <div id="customCursor"></div>
     <div id="cursorLine"></div>
 
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
+        <!-- 手機版拖曳控制條 (僅在手機顯示) -->
+        <div class="sidebar-drag-handle" id="dragHandle">
+            <span class="drag-bar"></span>
+        </div>
+
         <div class="header">
             <h1>茶文化走訪誌</h1>
-            <p>循著山嵐與茶香，
-走訪北臺灣茶文化風景。</p>
+            <!-- 手機版展開/收合按鈕 (僅在手機顯示) -->
+            <button class="header-expand-btn" id="expandToggleBtn">
+                <span class="arrow-icon">▼</span>
+                <span class="btn-label">展開</span>
+            </button>
+            <p>循著山嵐與茶香，走訪北臺灣茶文化風景。</p>
         </div>
         
         <div class="controls-wrapper">
@@ -370,6 +475,9 @@
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        // ============================================================
+        // 1. 自訂游標
+        // ============================================================
         const cursor = document.getElementById('customCursor');
         const cursorLine = document.getElementById('cursorLine');
 
@@ -380,6 +488,117 @@
             cursorLine.style.top = e.clientY + 'px';
         });
 
+        // ============================================================
+        // 2. 手機版面板收合功能 (僅在手機上初始化)
+        // ============================================================
+        (function initMobilePanel() {
+            const sidebar = document.getElementById('sidebar');
+            const dragHandle = document.getElementById('dragHandle');
+            const toggleBtn = document.getElementById('expandToggleBtn');
+            const btnLabel = toggleBtn.querySelector('.btn-label');
+
+            // 只在手機版 (寬度 <= 768px) 初始化功能
+            if (window.innerWidth > 768) return;
+
+            let isExpanded = false;
+            let startY = 0;
+            let startHeight = 0;
+            let isDragging = false;
+
+            // 切換展開/收合
+            function togglePanel(expand) {
+                const targetState = (expand !== undefined) ? expand : !isExpanded;
+                isExpanded = targetState;
+
+                if (isExpanded) {
+                    sidebar.classList.add('expanded');
+                    sidebar.style.height = '92vh';
+                    btnLabel.textContent = '收合';
+                } else {
+                    sidebar.classList.remove('expanded');
+                    sidebar.style.height = '42vh';
+                    btnLabel.textContent = '展開';
+                }
+            }
+
+            // 按鈕點擊切換
+            toggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                togglePanel();
+            });
+
+            // 拖曳控制條 - 觸控事件 (手機)
+            dragHandle.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                startY = touch.clientY;
+                startHeight = sidebar.getBoundingClientRect().height;
+                isDragging = true;
+                sidebar.style.transition = 'none';
+            }, { passive: false });
+
+            dragHandle.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                const touch = e.touches[0];
+                const deltaY = startY - touch.clientY;
+                const windowHeight = window.innerHeight;
+                const minHeight = windowHeight * 0.30;
+                const maxHeight = windowHeight * 0.92;
+                let newHeight = Math.min(maxHeight, Math.max(minHeight, startHeight + deltaY));
+                sidebar.style.height = newHeight + 'px';
+            }, { passive: false });
+
+            dragHandle.addEventListener('touchend', (e) => {
+                if (!isDragging) return;
+                isDragging = false;
+                sidebar.style.transition = 'height 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+                const currentHeight = sidebar.getBoundingClientRect().height;
+                const windowHeight = window.innerHeight;
+                const threshold = windowHeight * 0.55;
+                const shouldExpand = currentHeight > threshold;
+                togglePanel(shouldExpand);
+            });
+
+            // 滑鼠拖曳 (桌面除錯用，但手機為主)
+            dragHandle.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                startY = e.clientY;
+                startHeight = sidebar.getBoundingClientRect().height;
+                isDragging = true;
+                sidebar.style.transition = 'none';
+
+                const onMouseMove = (ev) => {
+                    if (!isDragging) return;
+                    const deltaY = startY - ev.clientY;
+                    const windowHeight = window.innerHeight;
+                    const minHeight = windowHeight * 0.30;
+                    const maxHeight = windowHeight * 0.92;
+                    let newHeight = Math.min(maxHeight, Math.max(minHeight, startHeight + deltaY));
+                    sidebar.style.height = newHeight + 'px';
+                };
+
+                const onMouseUp = () => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    sidebar.style.transition = 'height 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+                    const currentHeight = sidebar.getBoundingClientRect().height;
+                    const windowHeight = window.innerHeight;
+                    const threshold = windowHeight * 0.55;
+                    const shouldExpand = currentHeight > threshold;
+                    togglePanel(shouldExpand);
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                };
+
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+        })();
+
+        // ============================================================
+        // 3. 景點資料與核心功能
+        // ============================================================
         const SPOT_IMAGES_BASE64 = {
             "1": "https://i.ibb.co/Rk7PkY8V/image.jpg",
             "2": "https://i.ibb.co/0pjTTPtk/image.jpg",
@@ -547,20 +766,29 @@
             const marker = markersMap[spot.id];
             if (marker && marker._icon) {
                 marker._icon.classList.add('active');
-                const targetZoom = 12;
-                map.setZoom(targetZoom, { animate: false });
-                const targetPoint = map.latLngToContainerPoint([spot.lat, spot.lng]);
-                let offsetX = window.innerWidth <= 768 ? 0 : 460 / 2;
-                let offsetY = window.innerWidth <= 768 ? 280 / 2 : 0;
-                const newPoint = L.point(targetPoint.x + offsetX, targetPoint.y + offsetY);
-                map.setView(map.containerPointToLatLng(newPoint), targetZoom, { animate: true, duration: 0.6 });
             }
+
+            const targetZoom = 12;
+            map.setZoom(targetZoom, { animate: false });
+
+            let offsetX = 0, offsetY = 0;
+            if (window.innerWidth > 768) {
+                offsetX = 180;
+            } else {
+                offsetY = -120;
+            }
+
+            map.panTo([spot.lat, spot.lng], {
+                animate: true,
+                duration: 0.6,
+                offset: L.point(offsetX, offsetY)
+            });
 
             const articleContent = document.getElementById('articleContent');
             articleContent.innerHTML = ''; 
 
             let htmlContent = `
-                <div class="article-cover" style="background-image: url('${SPOT_IMAGES_BASE64[spot.id] || ""}');"></div>
+                <div class="article-cover" style="background-image: url('${SPOT_IMAGES_BASE64[spot.id] || ''}');"></div>
                 <div class="article-body">
                     <h2 class="article-title">${spot.name}</h2>
                     <div id="spotBadgeContainer" class="spot-badge-container"></div>
