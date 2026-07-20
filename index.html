@@ -111,7 +111,7 @@
         }
 
         /* ============================================================
-                   流星光線特效
+                   流星光線特效 Canvas
                    ============================================================ */
         #lightTrailCanvas {
             position: fixed;
@@ -488,7 +488,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         // ============================================================
-        // 1. 流星光線特效 (Canvas)
+        // 1. 流星光線特效 (2秒後自動消失)
         // ============================================================
         (function initLightTrail() {
             const canvas = document.getElementById('lightTrailCanvas');
@@ -504,110 +504,137 @@
             window.addEventListener('resize', resize);
             resize();
 
-            // 粒子陣列：儲存歷史軌跡點
-            const trail = [];
-            const MAX_TRAIL = 22; // 軌跡長度 (粒子數量)
-            let currentX = -100;
-            let currentY = -100;
+            // ----- 軌跡點陣列 -----
+            const points = [];
+            const MAX_POINTS = 50;
             let isActive = false;
 
-            // 顏色設定 (使用琥珀金色)
-            const colorStart = { r: 255, g: 215, b: 140 };   // 亮金
-            const colorEnd = { r: 184, g: 138, b: 76 };      // 琥珀
+            // ----- 計時器：停止移動 2 秒後清除軌跡 -----
+            let clearTimer = null;
 
-            // 更新游標位置
-            function updatePosition(x, y) {
-                currentX = x;
-                currentY = y;
-                isActive = true;
-
-                // 加入新點
-                trail.push({ x: x, y: y, life: 1.0 });
-                if (trail.length > MAX_TRAIL) {
-                    trail.shift();
+            function resetClearTimer() {
+                // 清除舊的計時器
+                if (clearTimer) {
+                    clearTimeout(clearTimer);
+                    clearTimer = null;
                 }
+                // 設定 2 秒後清除軌跡
+                clearTimer = setTimeout(() => {
+                    points.length = 0;   // 清空軌跡
+                    isActive = false;
+                    clearTimer = null;
+                }, 2000); // 2000ms = 2秒
             }
 
-            // 繪製流星光線
+            // ----- 更新位置 -----
+            function updatePosition(x, y) {
+                isActive = true;
+                // 加入新點
+                points.push({ x: x, y: y });
+                if (points.length > MAX_POINTS) {
+                    points.shift();
+                }
+                // 每次移動都重置計時器
+                resetClearTimer();
+            }
+
+            // ----- 繪製流暢線條 -----
             function draw() {
                 ctx.clearRect(0, 0, width, height);
 
-                if (!isActive || trail.length < 2) {
-                    // 如果沒有軌跡，還是畫一顆小光點在游標位置
-                    if (isActive) {
-                        ctx.beginPath();
-                        ctx.arc(currentX, currentY, 6, 0, Math.PI * 2);
-                        const grad = ctx.createRadialGradient(currentX, currentY, 0, currentX, currentY, 12);
-                        grad.addColorStop(0, 'rgba(255, 215, 140, 0.9)');
-                        grad.addColorStop(1, 'rgba(255, 215, 140, 0)');
-                        ctx.fillStyle = grad;
-                        ctx.fill();
-                    }
+                if (!isActive || points.length < 2) {
+                    // 如果沒有軌跡或只有單點，不繪製任何東西
                     requestAnimationFrame(draw);
                     return;
                 }
 
-                // 從尾巴到頭部繪製
-                const len = trail.length;
+                const len = points.length;
+
+                // ----- 1. 繪製主線條 -----
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+
                 for (let i = 0; i < len - 1; i++) {
-                    const p0 = trail[i];
-                    const p1 = trail[i + 1];
-                    const progress = i / (len - 1); // 0 (尾巴) ~ 1 (頭部)
+                    const p0 = points[Math.max(0, i - 1)];
+                    const p1 = points[i];
+                    const p2 = points[i + 1];
+                    const p3 = points[Math.min(len - 1, i + 2)];
 
-                    // 計算透明度與大小：頭部亮、尾巴淡
-                    const alpha = 0.1 + 0.9 * progress;
-                    const radius = 1.5 + 4.5 * progress;
-
-                    // 顏色插值：從琥珀到亮金
-                    const r = Math.round(colorStart.r + (colorEnd.r - colorStart.r) * (1 - progress));
-                    const g = Math.round(colorStart.g + (colorEnd.g - colorStart.g) * (1 - progress));
-                    const b = Math.round(colorStart.b + (colorEnd.b - colorStart.b) * (1 - progress));
-
-                    // 繪製光點 (發光效果)
-                    ctx.beginPath();
-                    ctx.arc(p1.x, p1.y, radius, 0, Math.PI * 2);
-                    
-                    // 內外光暈
-                    const grad = ctx.createRadialGradient(p1.x, p1.y, 0, p1.x, p1.y, radius * 3);
-                    grad.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${alpha * 0.9})`);
-                    grad.addColorStop(0.4, `rgba(${r}, ${g}, ${b}, ${alpha * 0.5})`);
-                    grad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
-                    ctx.fillStyle = grad;
-                    ctx.fill();
-
-                    // 核心亮點
-                    ctx.beginPath();
-                    ctx.arc(p1.x, p1.y, radius * 0.4, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(255, 255, 240, ${alpha * 0.7})`;
-                    ctx.fill();
-
-                    // 連接線 (流動的尾巴)
-                    if (i > 0) {
-                        ctx.beginPath();
-                        ctx.moveTo(p0.x, p0.y);
-                        ctx.lineTo(p1.x, p1.y);
-                        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha * 0.25})`;
-                        ctx.lineWidth = radius * 0.8;
-                        ctx.lineCap = 'round';
-                        ctx.stroke();
-                    }
+                    const cp1x = p1.x + (p2.x - p0.x) * 0.15;
+                    const cp1y = p1.y + (p2.y - p0.y) * 0.15;
+                    const cp2x = p2.x - (p3.x - p1.x) * 0.15;
+                    const cp2y = p2.y - (p3.y - p1.y) * 0.15;
+                    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
                 }
 
-                // 頭部最亮的光暈
-                const head = trail[len - 1];
+                const gradient = ctx.createLinearGradient(
+                    points[0].x, points[0].y,
+                    points[len - 1].x, points[len - 1].y
+                );
+                gradient.addColorStop(0, 'rgba(220, 185, 140, 0.15)');
+                gradient.addColorStop(0.4, 'rgba(220, 185, 130, 0.35)');
+                gradient.addColorStop(0.8, 'rgba(210, 175, 120, 0.60)');
+                gradient.addColorStop(1, 'rgba(245, 225, 180, 0.90)');
+
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = 5;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.stroke();
+
+                // ----- 2. 外層光暈 -----
                 ctx.beginPath();
-                ctx.arc(head.x, head.y, 14, 0, Math.PI * 2);
-                const headGrad = ctx.createRadialGradient(head.x, head.y, 0, head.x, head.y, 20);
-                headGrad.addColorStop(0, 'rgba(255, 235, 200, 0.6)');
-                headGrad.addColorStop(0.5, 'rgba(255, 215, 140, 0.2)');
-                headGrad.addColorStop(1, 'rgba(255, 215, 140, 0)');
-                ctx.fillStyle = headGrad;
+                ctx.moveTo(points[0].x, points[0].y);
+                for (let i = 0; i < len - 1; i++) {
+                    const p0 = points[Math.max(0, i - 1)];
+                    const p1 = points[i];
+                    const p2 = points[i + 1];
+                    const p3 = points[Math.min(len - 1, i + 2)];
+                    const cp1x = p1.x + (p2.x - p0.x) * 0.15;
+                    const cp1y = p1.y + (p2.y - p0.y) * 0.15;
+                    const cp2x = p2.x - (p3.x - p1.x) * 0.15;
+                    const cp2y = p2.y - (p3.y - p1.y) * 0.15;
+                    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+                }
+
+                const glowGradient = ctx.createLinearGradient(
+                    points[0].x, points[0].y,
+                    points[len - 1].x, points[len - 1].y
+                );
+                glowGradient.addColorStop(0, 'rgba(200, 180, 150, 0.05)');
+                glowGradient.addColorStop(0.5, 'rgba(220, 190, 150, 0.15)');
+                glowGradient.addColorStop(1, 'rgba(255, 225, 180, 0.35)');
+
+                ctx.strokeStyle = glowGradient;
+                ctx.lineWidth = 16;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.stroke();
+
+                // ----- 3. 頭部亮點 -----
+                const head = points[len - 1];
+                
+                const grad1 = ctx.createRadialGradient(head.x, head.y, 0, head.x, head.y, 30);
+                grad1.addColorStop(0, 'rgba(255, 240, 210, 0.45)');
+                grad1.addColorStop(0.4, 'rgba(245, 225, 180, 0.15)');
+                grad1.addColorStop(1, 'rgba(245, 225, 180, 0)');
+                ctx.beginPath();
+                ctx.arc(head.x, head.y, 30, 0, Math.PI * 2);
+                ctx.fillStyle = grad1;
                 ctx.fill();
 
-                // 頭部核心亮點
+                const grad2 = ctx.createRadialGradient(head.x, head.y, 0, head.x, head.y, 10);
+                grad2.addColorStop(0, 'rgba(255, 245, 230, 0.85)');
+                grad2.addColorStop(0.6, 'rgba(245, 225, 190, 0.4)');
+                grad2.addColorStop(1, 'rgba(245, 215, 170, 0)');
                 ctx.beginPath();
-                ctx.arc(head.x, head.y, 4, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(255, 245, 230, 0.85)';
+                ctx.arc(head.x, head.y, 10, 0, Math.PI * 2);
+                ctx.fillStyle = grad2;
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(head.x, head.y, 2.5, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 250, 240, 0.9)';
                 ctx.fill();
 
                 requestAnimationFrame(draw);
@@ -634,18 +661,6 @@
                     updatePosition(touch.clientX, touch.clientY);
                 }
             }, { passive: true });
-
-            // 當滑鼠/手指離開畫面時，慢慢淡出
-            document.addEventListener('mouseleave', () => {
-                isActive = false;
-                // 清除軌跡，避免殘留
-                trail.length = 0;
-            });
-
-            document.addEventListener('touchend', () => {
-                // 觸控結束後保留最後位置，但不再新增點
-                // 可以選擇清除或保留，這裡保留最後狀態
-            });
 
             // 啟動動畫循環
             draw();
