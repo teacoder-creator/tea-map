@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>茶文化走訪誌</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --primary: #2C3E31; /* 御茶濃綠 */
+            --primary-light: #F4F6F4; /* 輕盈茶白 */
+            --accent: #D4964B; /* 琥珀焙茶金 */
+            --text-main: #242B26; /* 炭綠黑 */
+            --text-muted: #8A988E; /* 煙草灰綠 */
+            --bg-site: #F8F9F8;
+            --shadow-sm: 0 6px 16px rgba(44,62,49,0.02);
+            --shadow-md: 0 16px 36px rgba(44,62,49,0.06);
+            --transition: cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-site);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: ''; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-image: url("https://www.transparenttextures.com/patterns/handmade-paper.png");
+            opacity: 0.3; pointer-events: none; z-index: 9999;
+        }
+
+        @media (min-width: 1024px) {
+            html, body { cursor: none !important; }
+        }
+
+        @media (max-width: 1023px) {
+            html, body { cursor: auto !important; }
+            #customCursor, #cursorLine { display: none !important; }
+        }
+
+        #customCursor {
+            width: 8px; height: 8px; background: var(--accent); border-radius: 50%;
+            position: fixed; pointer-events: none; z-index: 10000;
+            transform: translate(-50%, -50%); transition: transform 0.1s ease;
+        }
+
+        #cursorLine {
+            position: fixed; pointer-events: none; z-index: 9999;
+            width: 4px; height: 4px; background: var(--accent); border-radius: 50%;
+            box-shadow: 0 0 10px 2px var(--accent);
+            transform: translate(-50%, -50%);
+            transition: transform 0.15s cubic-bezier(0.1, 0.8, 0.2, 1);
+        }
+
+        .spot-badge-container {
+            display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap;
+        }
+        .spot-visual-badge {
+            font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 6px;
+            background: rgba(68, 62, 44, 0.05); color: var(--primary);
+            border: 1px solid rgba(68, 62, 44, 0.1);
+        }
+        
+        .tea-quote-box {
+            margin: 30px 0 25px 0; 
+            padding: 16px 20px; 
+            background: rgba(44, 62, 49, 0.02);
+            border-left: 3px solid var(--accent);
+            border-radius: 0 8px 8px 0;
+            text-align: left; 
+            color: var(--text-main); 
+            font-size: 13.5px;
+            letter-spacing: 1px; 
+            line-height: 1.6;
+        }
+        .tea-quote-source {
+            display: block;
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+            font-style: normal;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(44, 62, 49, 0.15); border-radius: 10px; }
+
+        .sidebar {
+            width: 420px; height: 100%; background: #ffffff;
+            box-shadow: 5px 0 30px rgba(0,0,0,0.01);
+            display: flex; flex-direction: column; z-index: 10;
+            border-right: 1px solid #ECEEEB; flex-shrink: 0;
+        }
+
+        .header { padding: 35px 35px 20px 35px; }
+        .header h1 { font-size: 24px; font-weight: 700; color: var(--primary); letter-spacing: 2px; margin-bottom: 6px; }
+        .header p { font-size: 13px; color: var(--text-muted); letter-spacing: 0.5px; }
+
+        .controls-wrapper { padding: 0 35px 20px 35px; border-bottom: 1px solid rgba(44,62,49,0.05); }
+        .search-box {
+            width: 100%; padding: 12px 16px; border: 1px solid #E2E6E3; border-radius: 12px;
+            font-size: 14px; outline: none; transition: all 0.4s var(--transition); background: #F9FAF9; margin-bottom: 12px;
+        }
+        .search-box:focus { border-color: var(--primary); background: #ffffff; box-shadow: 0 0 0 4px rgba(44,62,49,0.06); }
+
+        .filter-tabs { display: flex; gap: 6px; overflow-x: auto; }
+        .filter-tabs::-webkit-scrollbar { display: none; }
+        .tab-btn {
+            padding: 6px 14px; border: 1px solid #ECEEEB; background: #ffffff; border-radius: 20px;
+            font-size: 12px; color: #556057; cursor: pointer; white-space: nowrap; transition: all 0.3s var(--transition);
+        }
+        .tab-btn:hover, .tab-btn.active { background: var(--primary); color: #ffffff; border-color: var(--primary); }
+
+        .spot-list-wrapper { flex: 1; overflow: hidden; }
+        .spot-list { height: 100%; overflow-y: auto; padding: 20px 35px; }
+
+        .spot-card {
+            background: #ffffff; border: 1px solid #ECEEEB; border-radius: 14px; padding: 20px;
+            margin-bottom: 14px; cursor: pointer; transition: all 0.4s var(--transition); box-shadow: var(--shadow-sm);
+        }
+        .spot-card:hover { transform: translateY(-3px); border-color: rgba(44,62,49,0.15); box-shadow: var(--shadow-md); }
+        .spot-card.active { border-color: var(--primary); background-color: var(--primary-light); }
+        .spot-card h3 { font-size: 16px; color: var(--primary); margin-bottom: 6px; }
+
+        .tag { display: inline-block; font-size: 10.5px; padding: 3px 10px; border-radius: 30px; margin-bottom: 10px; font-weight: 600; }
+        .tag-苗栗 { background: #EBF3F9; color: #3A6B88; }
+        .tag-新竹 { background: #F3EBF9; color: #783F8C; }
+        .tag-桃園 { background: #F9EFEA; color: #96562E; }
+        .tag-台北 { background: #EBF9EE; color: #2A6B44; }
+        .spot-card p { font-size: 13px; color: var(--text-muted); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+        .main-content-view { flex: 1; height: 100%; position: relative; background: #F1F3F1; }
+        #map { width: 100%; height: 100%; z-index: 1; }
+
+        .article-panel {
+            position: absolute; top: 0; right: 0; width: 460px; height: 100%;
+            background: rgba(255, 255, 255, 0.90); backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%); box-shadow: -10px 0 40px rgba(0,0,0,0.08); z-index: 5;
+            display: flex; flex-direction: column; transform: translateX(100%); transition: transform 0.5s var(--transition);
+        }
+        .article-panel.active { transform: translateX(0); }
+        
+        .article-close-btn {
+            position: absolute; top: 20px; right: 20px; width: 36px; height: 36px; border-radius: 50%;
+            background: rgba(255,255,255,0.9); border: 1px solid #ECEEEB; font-size: 18px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; z-index: 12; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: all 0.3s;
+        }
+        .article-close-btn:hover { background: #ffffff; transform: scale(1.05); color: var(--accent); }
+        
+        .article-scroll-content { flex: 1; overflow-y: auto; }
+        .article-scroll-content::-webkit-scrollbar { width: 4px; }
+        
+        .article-cover {
+            width: 100%; height: 220px; background-size: cover; background-position: center; background-color: #ECEEEB;
+            border-bottom: 1px solid #ECEEEB;
+        }
+        
+        .article-body { padding: 30px 30px 60px 30px; }
+        .article-title { font-size: 24px; color: var(--primary); margin-bottom: 12px; font-weight: 700; }
+        .article-meta { display: flex; gap: 12px; align-items: center; margin-bottom: 25px; font-size: 13px; color: var(--text-muted); }
+        .article-text { font-size: 15px; line-height: 1.8; color: #3D4640; white-space: pre-line; text-align: justify; margin-bottom: 20px; }
+        
+        .nav-btn {
+            display: inline-flex; align-items: center; gap: 8px; background: var(--primary); color: #ffffff;
+            padding: 14px 28px; border-radius: 12px; text-decoration: none; font-size: 14px; font-weight: 600;
+            transition: all 0.3s var(--transition); box-shadow: 0 4px 14px rgba(44,62,49,0.1);
+        }
+        .nav-btn:hover { background: var(--accent); box-shadow: 0 6px 20px rgba(212,150,75,0.2); transform: translateY(-2px); }
+
+        .map-style-selector {
+            position: absolute; top: 20px; left: 20px; z-index: 8;
+            background: #ffffff; padding: 4px; border-radius: 30px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.06); display: flex; gap: 2px;
+        }
+        .map-style-btn {
+            border: none; background: transparent; padding: 8px 16px; font-size: 12px;
+            font-weight: 600; color: var(--text-muted); cursor: pointer; border-radius: 20px; transition: all 0.3s;
+        }
+        .map-style-btn.active { background: var(--primary); color: #ffffff; }
+
+        .tea-marker-container { position: relative; width: 18px; height: 18px; }
+        .custom-marker {
+            width: 100%; height: 100%; border-radius: 50%;
+            background: linear-gradient(135deg, #4A6E53 0%, #2C3E31 100%);
+            border: 2.5px solid #ffffff; box-shadow: 0 3px 10px rgba(44,62,49,0.35);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer; position: absolute; top: 0; left: 0; z-index: 2;
+        }
+        
+        .marker-hover-label {
+            position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%) scale(0.85);
+            background: rgba(255,255,255,0.98); padding: 6px 12px; border-radius: 8px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12); display: flex; align-items: center; gap: 6px;
+            white-space: nowrap; pointer-events: none; opacity: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 1px solid rgba(44,62,49,0.06); z-index: 5;
+        }
+        .leaflet-marker-icon:hover .marker-hover-label { opacity: 1; transform: translateX(-50%) scale(1); }
+
+        .pulse-wave {
+            position: absolute; top: -11px; left: -11px; width: 40px; height: 40px; border-radius: 50%;
+            background: rgba(44, 62, 49, 0.25); pointer-events: none; opacity: 0; transform: scale(0); z-index: 1;
+        }
+        .leaflet-marker-icon.active .pulse-wave { animation: teaPulse 1.8s infinite cubic-bezier(0.215, 0.610, 0.355, 1); }
+        .leaflet-marker-icon.active .custom-marker { background: linear-gradient(135deg, #D4964B 0%, #A46824 100%); transform: scale(1.3); }
+
+        @keyframes teaPulse {
+            0% { transform: scale(0.2); opacity: 0.8; }
+            50% { opacity: 0.4; }
+            100% { transform: scale(1.2); opacity: 0; }
+        }
+
+        @media (max-width: 768px) {
+            body { flex-direction: column-reverse; }
+            .sidebar { width: 100%; height: 280px; box-shadow: 0 -10px 30px rgba(0,0,0,0.05); border-top: 1px solid #ECEEEB; }
+            .header { padding: 16px 20px 10px 20px; }
+            .header h1 { font-size: 18px; }
+            .header p { display: none; }
+            .controls-wrapper { padding: 0 20px 10px 20px; }
+            .spot-list { padding: 10px 20px; display: flex; gap: 12px; overflow-x: auto; overflow-y: hidden; height: auto; }
+            .article-panel { position: fixed; width: 100%; height: 100%; top: 0; left: 0; transform: translateY(100%); z-index: 1000; }
+            .article-panel.active { transform: translateY(0); }
+            .article-cover { height: 160px; }
+            .article-body { padding: 20px 20px 40px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="customCursor"></div>
+    <div id="cursorLine"></div>
+
+    <div class="sidebar">
+        <div class="header">
+            <h1>茶文化走訪誌</h1>
+            <p>苗栗．新竹．桃園．台北 地圖探訪</p>
+        </div>
+        
+        <div class="controls-wrapper">
+            <input type="text" class="search-box" id="searchBox" placeholder="搜尋想去的景點...">
+            <div class="filter-tabs" id="filterTabs">
+                <button class="tab-btn active" onclick="filterRegion('全部')">全部</button>
+                <button class="tab-btn" onclick="filterRegion('苗栗')">苗栗</button>
+                <button class="tab-btn" onclick="filterRegion('新竹')">新竹</button>
+                <button class="tab-btn" onclick="filterRegion('桃園')">桃園</button>
+                <button class="tab-btn" onclick="filterRegion('台北')">台北</button>
+            </div>
+        </div>
+
+        <div class="spot-list-wrapper">
+            <div class="spot-list" id="spotList"></div>
+        </div>
+    </div>
+
+    <div class="main-content-view">
+        <div class="map-style-selector">
+            <button class="map-style-btn active" onclick="changeMapStyle('light')">人文</button>
+            <button class="map-style-btn" onclick="changeMapStyle('dark')">靜謐深色</button>
+            <button class="map-style-btn" onclick="changeMapStyle('satellite')">衛星實景</button>
+        </div>
+
+        <div id="map"></div>
+        
+        <div class="article-panel" id="articlePanel">
+            <button class="article-close-btn" onclick="closeArticle()">✕</button>
+            <div class="article-scroll-content" id="articleContent"></div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const cursor = document.getElementById('customCursor');
+        const cursorLine = document.getElementById('cursorLine');
+
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+            cursorLine.style.left = e.clientX + 'px';
+            cursorLine.style.top = e.clientY + 'px';
+        });
+
+        const SPOT_IMAGES_BASE64 = {
+            "1": "https://i.ibb.co/Rk7PkY8V/image.jpg",
+            "2": "https://i.ibb.co/0pjTTPtk/image.jpg",
+            "3": "https://i.ibb.co/7JjnpXJ2/image.jpg",
+            "4": "https://i.ibb.co/q3rcL6HD/image.jpg",
+            "5": "https://i.ibb.co/6VhBbQQ/image.jpg",
+            "6": "https://i.ibb.co/9kcW7Xq6/image.jpg",
+            "7": "https://i.ibb.co/rKQFTwFC/image.jpg",
+            "8": "https://i.ibb.co/Kjm4NWS3/image.jpg",
+            "9": "https://i.ibb.co/G3P52pDh/image.jpg",
+            "10": "https://i.ibb.co/3mVb18Q8/image.jpg",
+            "11": "https://i.ibb.co/6Rb80r5p/image.jpg",
+            "12": "https://i.ibb.co/fdHmJbPJ/image.jpg",
+            "13": "https://i.ibb.co/LXnLFHcN/image.jpg",
+            "14": "https://i.ibb.co/TDLRCjWz/image.jpg"
+        };
+
+        const teaQuotesData = {
+            1: { quote: "「矮紙斜行閒作草，晴窗細乳戲分茶。」", source: "—— 宋代・陸游《臨安春雨初霽》" },
+            2: { quote: "「雪芽為我洗清愁，風甌共舉。竹窗日射，坐看山茶吐。」", source: "—— 宋代・蘇軾《玉樓春·次韻趙伯山見寄》" },
+            3: { quote: "「淹留膳飯茶鐺熟，依舊清齋半日閒。」", source: "—— 宋代・陸游《過客舍》" },
+            4: { quote: "「竹下忘言對夕陽，此間冥坐息塵勞。」", source: "—— 唐代・錢起《與趙居士宿茶山》" },
+            5: { quote: "「汲來江水烹新茗，買盡青山為看山。」", source: "—— 明代・唐寅《題畫》" },
+            6: { quote: "「石鼎溫湯，休問當年事；雲林清社，茶灶自安然。」", source: "—— 清代・袁枚《隨園詩話》" },
+            7: { quote: "「活水還須活火烹，自攜茶竈就烹清。」", source: "—— 宋代・蘇軾《試院煎茶》" },
+            8: { quote: "「中泠泉水新焙茶，坐對湖光兩無語。」", source: "—— 宋代・歐陽修《試茶》" },
+            9: { quote: "「客來茶當酒，院靜鳥關門。」", source: "—— 唐代・杜荀鶴《訪記室不遇》" },
+            10: { quote: "「光陰轉盼，蒼狗白雲，烹茶煮酒，聊慰平生。」", source: "—— 明代・馮夢龍《警世通言》" },
+            11: { quote: "「春山處處鳥啼花，路入茶山春自華。」", source: "—— 宋代・陸游《遊山村》" },
+            12: { quote: "「淡如秋水虛澄靜，芳似春蘭動抑揚。」", source: "—— 清代・曹雪芹《紅樓夢》（關於好茶的品評）" },
+            13: { quote: "「日鑄茶生春意滿，龍團香透翠華清。」", source: "—— 宋代・梅堯臣《得鄉人書》" },
+            14: { quote: "「半壁山房待明月，一盞清茗酬知音。」", source: "—— 清代・汪士慎（題揚州八怪茶室聯）" }
+        };
+
+        const teaSpotsData = [
+            { id: 1, region: "苗栗", name: "八甲茶廠", lat: 24.532, lng: 120.785, shortDesc: "苗栗貓裏紅茶的重要生產茶廠，近年透過茶園復育與製茶轉型展現全新生機。", fullDesc: "八甲茶廠位於苗栗市南勢里八甲台地，這裡是推廣在地著名「貓裏紅茶」的核心製茶基地。近年來在當地農會與茶改場的積極輔導下，茶廠引進了全新的生態友善製茶設備與技術。放眼望去皆是連綿的翠綠丘陵，是感受苗栗客家新創茶文化復興的絕佳起點。" },
+            { id: 2, region: "苗栗", name: "銅鑼茶廠", lat: 24.463, lng: 120.778, shortDesc: "台灣農林旗下的美學茶廠，視野遼闊，可一邊品茗一邊遠眺雙峰山與火車奔馳。", fullDesc: "銅鑼茶廠是一座融合現代簡約幾何線條與工業風的當代建築。茶廠座落於山坡上，擁有大片的落地窗，視野極佳。\n\n這裡主要生產東方美人茶與蜜香紅茶，遊客來到此處可以參加預約制的採茶、製茶DIY體驗，或是靜靜坐在靠窗座位，點一盤客家茶點，看著山腳下的台鐵火車緩緩駛過。" },
+            { id: 3, region: "苗栗", name: "竹南天仁茶文化館", lat: 24.694, lng: 120.907, shortDesc: "天仁茗茶設立的專業主題博覽館，系統化展示中外茶文化歷史與製茶演進。", fullDesc: "鄰近國道三號的天仁茶文化館，是兼具教育與休閒功能的專業展館。館內透過文獻、精緻茶具以及多媒體互動裝置，生動地介紹了從茶葉的起源、唐宋煮茶點茶文化，到現代台灣茶藝的演進。園區內還結合了天仁吃茶趣餐廳，適合安排一場美味與知識兼具的歇腳旅程。" },
+            { id: 4, region: "新竹", name: "北埔老街", lat: 24.699, lng: 121.058, shortDesc: "充滿客家風情的歷史老街，也是品嚐與體驗道地客家擂茶、椪風茶的重鎮。", fullDesc: "北埔老街周邊古蹟密布（如金廣福公館、天水堂）。這裡最出名的莫過於傳統客家「擂茶」體驗，將茶葉、芝麻、花生等堅果在擂缽中研磨成細粉沖泡，趣味與美味兼具。同時，這裡也是全台最著名的東方美人茶（椪風茶）集散地之一。" },
+            { id: 5, region: "新竹", name: "峨眉富興茶業文化館", lat: 24.681, lng: 120.982, shortDesc: "登錄為歷史建築的百年老茶廠，見證峨眉東方美人茶外銷歐美的輝煌歷史。", fullDesc: "富興老茶廠（現為富興茶業文化館）曾於茶貿盛期日夜不停運轉。這棟建築保留了珍貴的清代與日治時期木造與磚造結構，內部的巨型製茶機械至今仍保存完好。著名的曾正男老師帶領團隊在此活化，帶領旅人穿越時空，嗅聞瀰漫在百年木樑間的淡淡茶香。" },
+            { id: 6, region: "新竹", name: "沙坑茶葉股份有限公司", lat: 24.740, lng: 121.162, shortDesc: "新竹橫山當地的歷史茶企，傳承多代焙茶技藝，致力於在地茶產業永續轉型。", fullDesc: "位於新竹橫山鄉沙坑村的沙坑茶葉，是地方上極具代表性的茶葉生產基地。這裏承載了在地居民共同的勞動記憶，如今茶廠在保留傳統製茶技術的基礎上，積極走向精緻化包裝與在地茶文化的推廣，是探訪新竹茶產業根基的隱藏版景點。" },
+            { id: 7, region: "新竹", name: "關西臺紅茶業文化館", lat: 24.793, lng: 121.173, shortDesc: "完整保存日治時期關西紅茶外銷世界各國的珍貴歷史，富含濃厚的人文氣息。", fullDesc: "關西「臺灣紅茶株式會社」創立於1937年，曾為台灣最大的紅茶外銷工廠之一。文化館內保留了當年貼滿世界各大港口航運標籤的木製茶箱，以及非常宏偉的半木造半磚造廠房。透過專業導覽，可以深刻了解當年台灣紅茶如何從關西出發、驚艷歐美的傳奇故事。" },
+            { id: 8, region: "桃園", name: "大溪老茶廠", lat: 24.831, lng: 121.328, shortDesc: "網美必訪的超唯美文青茶廠，藍調窗櫺與歷史揉捻機在光影下宛如時空靜止。", fullDesc: "大溪老茶廠建於1926年，舊名「大溪茶廠」，隱身在靜謐的半山腰中。這棟融合英倫美學與日式架構的建築，在經過時尚改建後，保留了標誌性的「大溪藍」窗戶、排氣送風牆與舊式製茶機組。\n\n這裡的視覺設計極簡約，光影在灰泥牆與藍窗之間流動，是目前全台灣最受年輕人喜愛的茶文化美學空間。" },
+            { id: 9, region: "桃園", name: "客家茶文化館", lat: 24.843, lng: 121.216, shortDesc: "以極具設計感的現代地景建築打造，全面展示客家茶文化與世界茶道美學。", fullDesc: "位於龍潭區的桃園市客家茶文化館，是一座依山坡地形建造的全新宏偉地景建築。館內規劃得非常大氣且現代化，智慧型深入探討客家酸柑茶、東方美人茶的由來，更設有六國茶室，讓人一站式體驗英國、土耳其、日本等不同國家的茶道精髓，極具國際視野。" },
+            { id: 10, region: "桃園", name: "大溪老街", lat: 24.884, lng: 121.287, shortDesc: "充滿巴洛克風情與閩南傳統的歷史街廓，也是探訪桃園在地古早味茶點與休閒文化的經典勝地。", fullDesc: "大溪老街主要以和平路、中央路等街廓為主。街上華麗的巴洛克式立面牌樓融合了客家、閩南與西洋的裝飾語彙，見證了當年因大漢溪航運發達而興起的茶葉與木器貿易盛世。來到這裡除了欣賞建築美學、品嚐道地的大溪豆乾之外，更能造訪周邊茶行與文創店，體驗充滿歷史厚度的休閒生活感。" },
+            { id: 11, region: "桃園", name: "大北坑休閒農業區", lat: 24.846, lng: 121.152, shortDesc: "著名的東方美人茶專業產區，擁有優美的丘陵茶園步道與豐富的客家農村生態。", fullDesc: "大北坑是桃園龍潭最具代表性的客家茶鄉，也是台灣最早推動茶產業觀光休閒化的地區之一。這裡遍布著如畫卷般整齊的梯田茶園，每年春季，茶園間還會盛開著耀眼的黃色魯冰花（茶路的守護母親）。區內有多條舒適的生態步道與道地的客家磚造餐廳，非常適合規劃一日郊遊。" },
+            { id: 12, region: "台北", name: "大稻埕", lat: 25.056, lng: 121.510, shortDesc: "台灣茶葉走向世界的歷史港口，古老街廓中至今仍飄散著精緻精焙的茶香。", fullDesc: "19世紀後期，約翰·陶德與李春生等人在大稻埕精製烏龍茶並外銷紐約，開啟了台灣茶的黃金時代。如今的大稻埕雖然碼頭不再載運茶葉，但迪化街與周邊巷弄內依舊開設了許多由百年老字號或年輕一代經營的創新茶沙龍，是體驗傳統與現代茶文化碰撞的最佳場域。" },
+            { id: 13, region: "台北", name: "南港茶葉製造示範場", lat: 25.018, lng: 121.621, shortDesc: "包種茶發源地的山中祕境，提供市民親近茶園、學習製茶知識的極簡美學空間。", fullDesc: "許多人不知道台北南港其實是台灣包種茶的重要發源地。這座位於南港大坑山區的製造示範場，擁有灰白色極簡的現代建築外觀。這裡長年雲霧繚繞，設有大面積的環山木棧道與品茶座，是台北市民週末暫離塵囂、俯瞰台北101並品味清香包種茶的絕佳私房景點。" },
+            { id: 14, region: "台北", name: "新北坪林茶業博物館", lat: 24.937, lng: 121.711, shortDesc: "北台灣最頂級的公立茶主題博物館，以高質感、極具創意的當代策展聞名。", fullDesc: "座落於坪林溪畔的茶業博物館，將傳統閩南四合院建築與當代前衛的策展美學完美融合。這裡的展覽擺脫了傳統博物館的枯燥，運用大量新媒體、光影藝術與互動五感體驗，將茶葉的科學、文學與歷史轉化為讓人驚艷的視覺饗宴，是全台茶文化愛好者公認的必訪殿堂。" }
+        ];
+
+        let map, markerGroup;
+        let currentRegion = '全部';
+        let searchQuery = '';
+        const markersMap = {};
+
+        const mapLayers = {
+            light: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO' }),
+            dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO' }),
+            satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri' })
+        };
+        let currentLayer = mapLayers.light;
+
+        function initMap() {
+            map = L.map('map', { center: [24.85, 121.25], zoom: 10, zoomControl: false });
+            currentLayer.addTo(map);
+            markerGroup = L.layerGroup().addTo(map);
+            L.control.zoom({ position: 'topright' }).addTo(map);
+        }
+
+        function changeMapStyle(style) {
+            document.querySelectorAll('.map-style-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            map.removeLayer(currentLayer);
+            currentLayer = mapLayers[style];
+            currentLayer.addTo(map);
+        }
+
+        function getCategory(name) {
+            if (name.includes('廠') || name.includes('公司')) return '歷史茶廠';
+            if (name.includes('館') || name.includes('場') || name.includes('博物館')) return '文化展館';
+            if (name.includes('區') || name.includes('園')) return '生態茶區';
+            return '歷史人文';
+        }
+
+        function filterRegion(region) {
+            currentRegion = region;
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                if (btn.textContent.includes(region)) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            renderInterface();
+
+            // 如果點擊了「全部」，自動關閉右側文章面板並將地圖平移/縮放回一開始的整張全覽視角
+            if (region === '全部') {
+                closeArticle();
+                map.setView([24.85, 121.25], 10, { animate: true, duration: 0.8 });
+            }
+        }
+
+        function renderInterface() {
+            const spotListEl = document.getElementById('spotList');
+            spotListEl.innerHTML = '';
+            markerGroup.clearLayers();
+
+            const filteredSpots = teaSpotsData.filter(spot => {
+                const matchRegion = (currentRegion === '全部' || spot.region === currentRegion);
+                const matchSearch = spot.name.toLowerCase().includes(searchQuery) || spot.shortDesc.toLowerCase().includes(searchQuery);
+                return matchRegion && matchSearch;
+            });
+
+            filteredSpots.forEach(spot => {
+                const card = document.createElement('div');
+                card.className = `spot-card`;
+                card.id = `card-${spot.id}`;
+                card.innerHTML = `
+                    <div>
+                        <span class="tag tag-${spot.region}">${spot.region} · ${getCategory(spot.name)}</span>
+                        <h3>${spot.name}</h3>
+                    </div>
+                    <p>${spot.shortDesc}</p>
+                `;
+                card.addEventListener('click', () => selectSpot(spot));
+                spotListEl.appendChild(card);
+
+                const markerHtml = `
+                    <div class="tea-marker-container">
+                        <div class="pulse-wave"></div>
+                        <div class="custom-marker"></div>
+                        <div class="marker-hover-label">
+                            <span class="label-name">${spot.name}</span>
+                            <span class="label-tag tag-${spot.region}">${spot.region}</span>
+                        </div>
+                    </div>
+                `;
+
+                const customIcon = L.divIcon({
+                    html: markerHtml,
+                    className: 'clear-marker-bg',
+                    iconSize: [18, 18],
+                    iconAnchor: [9, 9]
+                });
+
+                const marker = L.marker([spot.lat, spot.lng], { icon: customIcon }).addTo(markerGroup);
+                marker.on('click', () => selectSpot(spot));
+                markersMap[spot.id] = marker;
+            });
+        }
+
+        function selectSpot(spot) {
+            document.querySelectorAll('.spot-card').forEach(c => c.classList.remove('active'));
+            const card = document.getElementById(`card-${spot.id}`);
+            if (card) {
+                card.classList.add('active');
+                card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+
+            Object.keys(markersMap).forEach(id => {
+                const m = markersMap[id];
+                if (m && m._icon) m._icon.classList.remove('active');
+            });
+            
+            const marker = markersMap[spot.id];
+            if (marker && marker._icon) {
+                marker._icon.classList.add('active');
+                const targetZoom = 12;
+                map.setZoom(targetZoom, { animate: false });
+                const targetPoint = map.latLngToContainerPoint([spot.lat, spot.lng]);
+                let offsetX = window.innerWidth <= 768 ? 0 : 460 / 2;
+                let offsetY = window.innerWidth <= 768 ? 280 / 2 : 0;
+                const newPoint = L.point(targetPoint.x + offsetX, targetPoint.y + offsetY);
+                map.setView(map.containerPointToLatLng(newPoint), targetZoom, { animate: true, duration: 0.6 });
+            }
+
+            const articleContent = document.getElementById('articleContent');
+            articleContent.innerHTML = ''; 
+
+            let htmlContent = `
+                <div class="article-cover" style="background-image: url('${SPOT_IMAGES_BASE64[spot.id] || ""}');"></div>
+                <div class="article-body">
+                    <h2 class="article-title">${spot.name}</h2>
+                    <div id="spotBadgeContainer" class="spot-badge-container"></div>
+                    <div class="article-meta">
+                        <span class="tag tag-${spot.region}">${spot.region}地區</span>
+                        <span>🏷️ 分類: ${getCategory(spot.name)}</span>
+                    </div>
+                    <div class="article-text">${spot.fullDesc}</div>
+                    
+                    <div id="teaQuoteBox" class="tea-quote-box"></div>
+                    
+                    <a class="nav-btn" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(spot.region + ' ' + spot.name)}" target="_blank">
+                        🧭 前往 Google 地圖搜尋導航
+                    </a>
+                </div>
+            `;
+
+            articleContent.innerHTML = htmlContent;
+            updateBadgesAndQuotes(spot);
+            
+            document.getElementById('articlePanel').classList.add('active');
+            articleContent.scrollTop = 0;
+        }
+
+        function updateBadgesAndQuotes(spot) {
+            const badgeContainer = document.getElementById('spotBadgeContainer');
+            const quoteBox = document.getElementById('teaQuoteBox');
+            
+            if (badgeContainer) {
+                let badgesHTML = '<span class="spot-visual-badge">🍃 在地茶香</span>';
+                if (spot.name.includes("廠") || spot.name.includes("公司")) {
+                    badgesHTML += '<span class="spot-visual-badge">🏭 歷史製茶廠</span>';
+                } else if (spot.name.includes("館") || spot.name.includes("場") || spot.name.includes("博物館")) {
+                    badgesHTML += '<span class="spot-visual-badge">🏛️ 文化展館</span>';
+                } else {
+                    badgesHTML += '<span class="spot-visual-badge">🌿 生態景點</span>';
+                }
+                badgeContainer.innerHTML = badgesHTML;
+            }
+
+            if (quoteBox && teaQuotesData[spot.id]) {
+                const item = teaQuotesData[spot.id];
+                quoteBox.innerHTML = `${item.quote}<span class="tea-quote-source">${item.source}</span>`;
+            }
+        }
+
+        function closeArticle() {
+            document.getElementById('articlePanel').classList.remove('active');
+            document.querySelectorAll('.spot-card').forEach(c => c.classList.remove('active'));
+            Object.keys(markersMap).forEach(id => {
+                const m = markersMap[id];
+                if (m && m._icon) m._icon.classList.remove('active');
+            });
+        }
+
+        document.getElementById('searchBox').addEventListener('input', (e) => {
+            searchQuery = e.target.value.toLowerCase().trim();
+            renderInterface();
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            renderInterface();
+        });
+    </script>
+</body>
+</html>
