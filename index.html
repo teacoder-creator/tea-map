@@ -54,9 +54,6 @@
             font-weight: 500;
         }
 
-        /* ============================================================
-           卡片內文 - 兩個版本都完整顯示，不截斷
-           ============================================================ */
         .spot-card p { 
             font-family: "Noto Sans TC", sans-serif;
             font-size: 13px; 
@@ -113,9 +110,9 @@
         }
 
         /* ============================================================
-                   流星光線特效 Canvas
+                   茶香飄逸特效 Canvas
                    ============================================================ */
-        #lightTrailCanvas {
+        #teaParticlesCanvas {
             position: fixed;
             top: 0;
             left: 0;
@@ -447,8 +444,8 @@
 </head>
 <body>
 
-    <!-- 流星光線 Canvas -->
-    <canvas id="lightTrailCanvas"></canvas>
+    <!-- 茶香飄逸 Canvas -->
+    <canvas id="teaParticlesCanvas"></canvas>
 
     <div id="customCursor"></div>
     <div id="cursorLine"></div>
@@ -502,10 +499,10 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         // ============================================================
-        // 1. 流星光線特效 (1秒後自動消失)
+        // 1. 茶香飄逸特效 (方案三)
         // ============================================================
-        (function initLightTrail() {
-            const canvas = document.getElementById('lightTrailCanvas');
+        (function initTeaParticles() {
+            const canvas = document.getElementById('teaParticlesCanvas');
             const ctx = canvas.getContext('2d');
             let width, height;
 
@@ -518,150 +515,130 @@
             window.addEventListener('resize', resize);
             resize();
 
-            const points = [];
-            const MAX_POINTS = 50;
-            let isActive = false;
-            let clearTimer = null;
+            const particles = [];
+            const MAX_PARTICLES = 60;
 
-            function resetClearTimer() {
-                if (clearTimer) {
-                    clearTimeout(clearTimer);
-                    clearTimer = null;
+            // 茶色系調色盤
+            const teaColors = [
+                { r: 210, g: 180, b: 140 }, // 烏龍茶色
+                { r: 195, g: 160, b: 120 }, // 鐵觀音色
+                { r: 180, g: 145, b: 100 }, // 普洱茶色
+                { r: 220, g: 195, b: 160 }, // 金萱茶色
+                { r: 200, g: 170, b: 130 }, // 紅茶色
+            ];
+
+            function createTeaParticle(x, y) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 0.3 + Math.random() * 1.2;
+                const color = teaColors[Math.floor(Math.random() * teaColors.length)];
+                particles.push({
+                    x: x + (Math.random() - 0.5) * 4,
+                    y: y + (Math.random() - 0.5) * 4,
+                    vx: Math.cos(angle) * speed * (0.3 + Math.random() * 0.4),
+                    vy: Math.sin(angle) * speed * (0.3 + Math.random() * 0.4) - 0.6,
+                    size: 3 + Math.random() * 6,
+                    life: 1.0,
+                    decay: 0.005 + Math.random() * 0.009,
+                    rotation: Math.random() * Math.PI * 2,
+                    rotSpeed: (Math.random() - 0.5) * 0.04,
+                    r: color.r,
+                    g: color.g,
+                    b: color.b,
+                    // 飄逸路徑微微擺動
+                    waveOffset: Math.random() * Math.PI * 2,
+                    waveSpeed: 0.02 + Math.random() * 0.03
+                });
+                while (particles.length > MAX_PARTICLES) {
+                    particles.shift();
                 }
-                // 改為 1 秒後清除軌跡
-                clearTimer = setTimeout(() => {
-                    points.length = 0;
-                    isActive = false;
-                    clearTimer = null;
-                }, 1000); // 1000ms = 1秒
             }
 
-            function updatePosition(x, y) {
-                isActive = true;
-                points.push({ x: x, y: y });
-                if (points.length > MAX_POINTS) {
-                    points.shift();
+            function updateParticles() {
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    // 微微飄動
+                    p.waveOffset += p.waveSpeed;
+                    p.x += p.vx + Math.sin(p.waveOffset) * 0.15;
+                    p.y += p.vy;
+                    p.vy += 0.015; // 微重力
+                    p.vx *= 0.999;
+                    p.rotation += p.rotSpeed;
+                    p.life -= p.decay;
+                    if (p.life <= 0) {
+                        particles.splice(i, 1);
+                    }
                 }
-                resetClearTimer();
             }
 
-            function draw() {
+            function drawParticles() {
                 ctx.clearRect(0, 0, width, height);
 
-                if (!isActive || points.length < 2) {
-                    requestAnimationFrame(draw);
-                    return;
+                for (const p of particles) {
+                    const alpha = p.life * 0.75;
+                    const radius = p.size * (0.3 + 0.7 * p.life);
+
+                    // 茶色光暈 (外層)
+                    const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius * 4);
+                    grad.addColorStop(0, `rgba(${p.r + 30}, ${p.g + 20}, ${p.b + 10}, ${alpha * 0.45})`);
+                    grad.addColorStop(0.4, `rgba(${p.r}, ${p.g}, ${p.b}, ${alpha * 0.25})`);
+                    grad.addColorStop(1, `rgba(${p.r}, ${p.g}, ${p.b}, 0)`);
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, radius * 4, 0, Math.PI * 2);
+                    ctx.fillStyle = grad;
+                    ctx.fill();
+
+                    // 核心光點
+                    const coreGrad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius * 0.6);
+                    coreGrad.addColorStop(0, `rgba(255, 245, 230, ${alpha * 0.5})`);
+                    coreGrad.addColorStop(1, `rgba(${p.r + 40}, ${p.g + 30}, ${p.b + 20}, ${alpha * 0.2})`);
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, radius * 0.6, 0, Math.PI * 2);
+                    ctx.fillStyle = coreGrad;
+                    ctx.fill();
+
+                    // 偶爾出現細小的「茶葉」形狀（用短線條模擬）
+                    if (p.size > 4 && Math.random() > 0.7) {
+                        ctx.save();
+                        ctx.translate(p.x, p.y);
+                        ctx.rotate(p.rotation);
+                        ctx.beginPath();
+                        ctx.moveTo(-radius * 0.5, -radius * 0.3);
+                        ctx.quadraticCurveTo(0, -radius * 0.8, radius * 0.5, -radius * 0.3);
+                        ctx.quadraticCurveTo(0, 0, -radius * 0.5, -radius * 0.3);
+                        ctx.strokeStyle = `rgba(${p.r - 20}, ${p.g - 10}, ${p.b}, ${alpha * 0.2})`;
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                        ctx.restore();
+                    }
                 }
 
-                const len = points.length;
-
-                // 主線條
-                ctx.beginPath();
-                ctx.moveTo(points[0].x, points[0].y);
-                for (let i = 0; i < len - 1; i++) {
-                    const p0 = points[Math.max(0, i - 1)];
-                    const p1 = points[i];
-                    const p2 = points[i + 1];
-                    const p3 = points[Math.min(len - 1, i + 2)];
-                    const cp1x = p1.x + (p2.x - p0.x) * 0.15;
-                    const cp1y = p1.y + (p2.y - p0.y) * 0.15;
-                    const cp2x = p2.x - (p3.x - p1.x) * 0.15;
-                    const cp2y = p2.y - (p3.y - p1.y) * 0.15;
-                    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
-                }
-
-                const gradient = ctx.createLinearGradient(
-                    points[0].x, points[0].y,
-                    points[len - 1].x, points[len - 1].y
-                );
-                gradient.addColorStop(0, 'rgba(220, 185, 140, 0.15)');
-                gradient.addColorStop(0.4, 'rgba(220, 185, 130, 0.35)');
-                gradient.addColorStop(0.8, 'rgba(210, 175, 120, 0.60)');
-                gradient.addColorStop(1, 'rgba(245, 225, 180, 0.90)');
-
-                ctx.strokeStyle = gradient;
-                ctx.lineWidth = 5;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                ctx.stroke();
-
-                // 外層光暈
-                ctx.beginPath();
-                ctx.moveTo(points[0].x, points[0].y);
-                for (let i = 0; i < len - 1; i++) {
-                    const p0 = points[Math.max(0, i - 1)];
-                    const p1 = points[i];
-                    const p2 = points[i + 1];
-                    const p3 = points[Math.min(len - 1, i + 2)];
-                    const cp1x = p1.x + (p2.x - p0.x) * 0.15;
-                    const cp1y = p1.y + (p2.y - p0.y) * 0.15;
-                    const cp2x = p2.x - (p3.x - p1.x) * 0.15;
-                    const cp2y = p2.y - (p3.y - p1.y) * 0.15;
-                    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
-                }
-
-                const glowGradient = ctx.createLinearGradient(
-                    points[0].x, points[0].y,
-                    points[len - 1].x, points[len - 1].y
-                );
-                glowGradient.addColorStop(0, 'rgba(200, 180, 150, 0.05)');
-                glowGradient.addColorStop(0.5, 'rgba(220, 190, 150, 0.15)');
-                glowGradient.addColorStop(1, 'rgba(255, 225, 180, 0.35)');
-
-                ctx.strokeStyle = glowGradient;
-                ctx.lineWidth = 16;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                ctx.stroke();
-
-                // 頭部亮點
-                const head = points[len - 1];
-                
-                const grad1 = ctx.createRadialGradient(head.x, head.y, 0, head.x, head.y, 30);
-                grad1.addColorStop(0, 'rgba(255, 240, 210, 0.45)');
-                grad1.addColorStop(0.4, 'rgba(245, 225, 180, 0.15)');
-                grad1.addColorStop(1, 'rgba(245, 225, 180, 0)');
-                ctx.beginPath();
-                ctx.arc(head.x, head.y, 30, 0, Math.PI * 2);
-                ctx.fillStyle = grad1;
-                ctx.fill();
-
-                const grad2 = ctx.createRadialGradient(head.x, head.y, 0, head.x, head.y, 10);
-                grad2.addColorStop(0, 'rgba(255, 245, 230, 0.85)');
-                grad2.addColorStop(0.6, 'rgba(245, 225, 190, 0.4)');
-                grad2.addColorStop(1, 'rgba(245, 215, 170, 0)');
-                ctx.beginPath();
-                ctx.arc(head.x, head.y, 10, 0, Math.PI * 2);
-                ctx.fillStyle = grad2;
-                ctx.fill();
-
-                ctx.beginPath();
-                ctx.arc(head.x, head.y, 2.5, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(255, 250, 240, 0.9)';
-                ctx.fill();
-
-                requestAnimationFrame(draw);
+                updateParticles();
+                requestAnimationFrame(drawParticles);
             }
 
+            // 事件綁定
             document.addEventListener('mousemove', (e) => {
-                updatePosition(e.clientX, e.clientY);
+                createTeaParticle(e.clientX, e.clientY);
             });
 
             document.addEventListener('touchmove', (e) => {
                 const touch = e.touches[0];
                 if (touch) {
-                    updatePosition(touch.clientX, touch.clientY);
+                    createTeaParticle(touch.clientX, touch.clientY);
                 }
             }, { passive: true });
 
             document.addEventListener('touchstart', (e) => {
                 const touch = e.touches[0];
                 if (touch) {
-                    updatePosition(touch.clientX, touch.clientY);
+                    // 開始時多產生一些粒子
+                    for (let i = 0; i < 3; i++) {
+                        createTeaParticle(touch.clientX + (Math.random() - 0.5) * 20, touch.clientY + (Math.random() - 0.5) * 20);
+                    }
                 }
             }, { passive: true });
 
-            draw();
+            drawParticles();
         })();
 
         // ============================================================
