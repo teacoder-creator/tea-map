@@ -6,6 +6,7 @@
     <title>茶文化走訪誌</title>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;600&family=Noto+Sans+TC:wght@300;400;500&display=swap?v=2" rel="stylesheet">
     <style>
         :root {
             --primary: #314234; /* 御茶濃綠 */
@@ -274,27 +275,48 @@
             100% { transform: scale(1.2); opacity: 0; }
         }
 
-       @media (max-width: 768px) {
+    @media (max-width: 768px) {
     body { flex-direction: column-reverse; }
-    .sidebar { width: 100%; height: 45vh; box-shadow: 0 -10px 30px rgba(0,0,0,0.05); border-top: 1px solid #ECEEEB; }
-    .header { padding: 12px 20px 6px 20px; }
-    .header h1 { font-size: 18px; }
+    
+    /* 讓面板預設高度適中，但允許向上滑動展開 */
+    .sidebar { 
+        width: 100%; 
+        height: 42vh; /* 預設佔手機畫面約 42% */
+        max-height: 85vh; /* 向上滑動時最多可以展開到 85% 螢幕高度 */
+        transition: height 0.4s var(--transition);
+        box-shadow: 0 -10px 30px rgba(0,0,0,0.08); 
+        border-top: 1px solid #ECEEEB; 
+        border-radius: 20px 20px 0 0; /* 加上漂亮的圓角，更有App質感 */
+    }
+    
+    .header { padding: 16px 20px 10px 20px; }
+    .header h1 { font-size: 18px; font-family: "Noto Serif TC", serif; }
     .header p { display: none; }
     .controls-wrapper { padding: 0 20px 10px 20px; }
     
-    /* 修改這裡：改回上下垂直滾動，並給予適當高度 */
+    /* 讓下方景點列表可以順暢上下滑動，且支援展開 */
     .spot-list-wrapper { flex: 1; overflow: hidden; }
     .spot-list { 
-        padding: 10px 20px; 
-        display: block; /* 改回預設區塊堆疊 */
+        padding: 10px 20px 40px 20px; 
+        display: block; 
         overflow-x: hidden; 
         overflow-y: auto; 
         height: 100%; 
     }
+    
     .spot-card {
-        margin-bottom: 12px; /* 增加卡片間距 */
+        margin-bottom: 12px;
     }
     
+    /* 確保手機版內文與標題套用優雅字體 */
+    .spot-card h3 {
+        font-family: "Noto Serif TC", serif;
+    }
+    .spot-card p, .article-text {
+        font-family: "Noto Serif TC", "Noto Sans TC", serif;
+        line-height: 1.8;
+    }
+
     .article-panel { position: fixed; width: 100%; height: 100%; top: 0; left: 0; transform: translateY(100%); z-index: 1000; }
     .article-panel.active { transform: translateY(0); }
     .article-cover { height: 160px; }
